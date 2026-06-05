@@ -1,13 +1,19 @@
 package com.example.project.exception;
 
+/**
+ * Converts application exceptions into consistent API error responses.
+ */
+
 import com.example.project.response.ApiResponse;
 import com.example.project.util.ResponseUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -43,6 +49,31 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler({ForbiddenException.class, AccessDeniedException.class})
 	public ResponseEntity<ApiResponse<Void>> handleForbidden(RuntimeException ex) {
 		return ResponseUtil.error(HttpStatus.FORBIDDEN, ex.getMessage());
+	}
+
+	@ExceptionHandler(PendingApprovalException.class)
+	public ResponseEntity<ApiResponse<Void>> handlePendingApproval(PendingApprovalException ex) {
+		return ResponseUtil.error(HttpStatus.FORBIDDEN, ex.getMessage());
+	}
+
+	@ExceptionHandler({AccountLockedException.class, LockedException.class})
+	public ResponseEntity<ApiResponse<Void>> handleAccountLocked(RuntimeException ex) {
+		return ResponseUtil.error(HttpStatus.LOCKED, ex.getMessage());
+	}
+
+	@ExceptionHandler(RateLimitExceededException.class)
+	public ResponseEntity<ApiResponse<Void>> handleRateLimit(RateLimitExceededException ex) {
+		return ResponseUtil.error(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());
+	}
+
+	@ExceptionHandler(IllegalArgumentException.class)
+	public ResponseEntity<ApiResponse<Void>> handleIllegalArgument(IllegalArgumentException ex) {
+		return ResponseUtil.error(HttpStatus.BAD_REQUEST, ex.getMessage());
+	}
+
+	@ExceptionHandler(HttpMessageNotReadableException.class)
+	public ResponseEntity<ApiResponse<Void>> handleMalformedJson(HttpMessageNotReadableException ex) {
+		return ResponseUtil.error(HttpStatus.BAD_REQUEST, "Malformed or invalid JSON request body");
 	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)

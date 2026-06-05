@@ -1,23 +1,38 @@
 package com.example.project.repository;
 
+/**
+ * Database queries for user records.
+ */
+
 import com.example.project.entity.User;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import com.example.project.entity.enums.RequestedRole;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface UserRepository extends JpaRepository<User, Long> {
+public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificationExecutor<User> {
 
-	Optional<User> findByEmailAndDeletedFalse(String email);
+	@EntityGraph(attributePaths = {"roles"})
+	Optional<User> findByEmail(String email);
 
-	boolean existsByEmailAndDeletedFalse(String email);
+	@EntityGraph(attributePaths = {"roles"})
+	Optional<User> findByEmailIgnoreCase(String email);
 
-	Optional<User> findByIdAndDeletedFalse(Long id);
+	boolean existsByEmail(String email);
 
-	Page<User> findByDeletedFalse(Pageable pageable);
+	boolean existsByEmailIgnoreCase(String email);
 
-	Page<User> findByDeletedFalseAndEmailContainingIgnoreCase(String email, Pageable pageable);
+	boolean existsByPhone(String phone);
+
+	@EntityGraph(attributePaths = {"roles"})
+	List<User> findByEmailVerifiedTrueAndAdminApprovedFalseAndRequestedRoleIn(List<RequestedRole> roles);
+
+	@Override
+	@EntityGraph(attributePaths = {"roles"})
+	Optional<User> findById(Long id);
 }

@@ -1,5 +1,9 @@
 package com.example.project.upload;
 
+/**
+ * Helper methods for validating and storing uploaded files.
+ */
+
 import com.example.project.exception.BadRequestException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -46,6 +50,17 @@ public class FileUtil {
 		if (contentType == null || !allowedTypes.contains(contentType)) {
 			throw new BadRequestException("File type not allowed: " + contentType);
 		}
+	}
+
+	public Path resolve(String filename) {
+		if (filename == null || filename.contains("..") || filename.contains("/") || filename.contains("\\")) {
+			throw new BadRequestException("Invalid filename");
+		}
+		return uploadDir.resolve(filename).normalize();
+	}
+
+	public boolean exists(String filename) {
+		return Files.exists(resolve(filename));
 	}
 
 	private String getExtension(String filename) {

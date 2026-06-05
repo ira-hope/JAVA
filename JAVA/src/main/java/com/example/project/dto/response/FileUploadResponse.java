@@ -1,5 +1,9 @@
 package com.example.project.dto.response;
 
+/**
+ * API response shape for uploaded file metadata.
+ */
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

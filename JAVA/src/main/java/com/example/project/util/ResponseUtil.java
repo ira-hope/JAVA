@@ -1,5 +1,9 @@
 package com.example.project.util;
 
+/**
+ * Builds standard ApiResponse objects for controllers.
+ */
+
 import com.example.project.response.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

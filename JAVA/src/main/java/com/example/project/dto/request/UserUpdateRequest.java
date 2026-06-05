@@ -1,6 +1,12 @@
 package com.example.project.dto.request;
 
-import jakarta.validation.constraints.Size;
+/**
+ * Request body for updating user details and roles.
+ */
+
+import com.example.project.entity.enums.UserStatus;
+import com.example.project.validation.ValidName;
+import com.example.project.validation.ValidRoles;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -10,13 +16,15 @@ import java.util.Set;
 @Setter
 public class UserUpdateRequest {
 
-	@Size(max = 100)
-	private String firstName;
+	@ValidName
+	private String fullName;
 
-	@Size(max = 100)
-	private String lastName;
+	private String phone;
 
-	private Boolean enabled;
+	private UserStatus status;
 
+	private Boolean adminApproved;
+
+	@ValidRoles
 	private Set<String> roles;
 }

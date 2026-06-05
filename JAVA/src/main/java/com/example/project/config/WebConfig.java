@@ -1,5 +1,9 @@
 package com.example.project.config;
 
+/**
+ * Registers web-related settings such as static resource handling.
+ */
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;

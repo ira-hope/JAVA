@@ -1,25 +1,32 @@
 package com.example.project.service.impl;
 
-import com.example.project.dto.request.UserCreateRequest;
-import com.example.project.dto.request.UserUpdateRequest;
+/**
+ * Implements admin user listing, role management, and account deletion.
+ */
+
+import com.example.project.dto.request.UserRoleUpdateRequest;
 import com.example.project.dto.response.UserResponse;
 import com.example.project.entity.Role;
 import com.example.project.entity.Role.RoleName;
 import com.example.project.entity.User;
-import com.example.project.exception.DuplicateResourceException;
+import com.example.project.entity.enums.UserStatus;
+import com.example.project.exception.BadRequestException;
 import com.example.project.exception.ResourceNotFoundException;
 import com.example.project.mapper.UserMapper;
+import com.example.project.repository.RefreshTokenRepository;
 import com.example.project.repository.RoleRepository;
 import com.example.project.repository.UserRepository;
 import com.example.project.response.PagedResponse;
+import com.example.project.service.AuditService;
+import com.example.project.service.CustomerService;
 import com.example.project.service.UserService;
+import com.example.project.specification.UserSpecification;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -30,75 +37,92 @@ import java.util.stream.Collectors;
 public class UserServiceImpl implements UserService {
 
 	private final UserRepository userRepository;
+	private final RefreshTokenRepository refreshTokenRepository;
 	private final RoleRepository roleRepository;
 	private final UserMapper userMapper;
-	private final PasswordEncoder passwordEncoder;
+	private final AuditService auditService;
+	private final CustomerService customerService;
 
 	@Override
 	@Transactional(readOnly = true)
-	public PagedResponse<UserResponse> findAll(Pageable pageable, String search) {
-		Page<User> page = StringUtils.hasText(search)
-				? userRepository.findByDeletedFalseAndEmailContainingIgnoreCase(search, pageable)
-				: userRepository.findByDeletedFalse(pageable);
+	public PagedResponse<UserResponse> findAll(
+			Pageable pageable,
+			String search,
+			String email,
+			String fullName,
+			UserStatus status,
+			String role) {
+		validateRoleFilter(role);
+		Specification<User> spec = UserSpecification.withFilters(search, email, fullName, status, role);
+		Page<User> page = userRepository.findAll(spec, pageable);
+		page.getContent().forEach(user -> user.getRoles().size());
 		return toPagedResponse(page);
 	}
 
 	@Override
 	@Transactional(readOnly = true)
 	public UserResponse findById(Long id) {
-		return userMapper.toResponse(getActiveUser(id));
+		return userMapper.toResponse(getUser(id));
 	}
 
 	@Override
 	@Transactional(readOnly = true)
 	public UserResponse getCurrentUser(String email) {
-		User user = userRepository.findByEmailAndDeletedFalse(email)
+		User user = userRepository.findByEmailIgnoreCase(email)
 				.orElseThrow(() -> new ResourceNotFoundException("User not found"));
 		return userMapper.toResponse(user);
 	}
 
 	@Override
 	@Transactional
-	public UserResponse create(UserCreateRequest request) {
-		if (userRepository.existsByEmailAndDeletedFalse(request.getEmail())) {
-			throw new DuplicateResourceException("Email already exists");
-		}
-		User user = userMapper.toEntity(request);
-		user.setPassword(passwordEncoder.encode(request.getPassword()));
-		user.setRoles(resolveRoles(request.getRoles()));
-		return userMapper.toResponse(userRepository.save(user));
+	public UserResponse updateRoles(Long id, UserRoleUpdateRequest request, String performedBy) {
+		User user = getUser(id);
+		Set<Role> roles = resolveRoles(request.getRoles());
+		user.setRoles(roles);
+		applyRequestedRole(user, roles);
+		User saved = userRepository.save(user);
+		auditService.log("UPDATE_ROLES", "User", saved.getId(), performedBy,
+				"Roles updated to " + request.getRoles());
+		return userMapper.toResponse(saved);
 	}
 
 	@Override
 	@Transactional
-	public UserResponse update(Long id, UserUpdateRequest request) {
-		User user = getActiveUser(id);
-		userMapper.updateEntity(user, request);
-		if (request.getRoles() != null) {
-			user.setRoles(resolveRoles(request.getRoles()));
+	public void delete(Long id, String performedBy) {
+		User user = getUser(id);
+		if ("admin@wasac.com".equalsIgnoreCase(user.getEmail())) {
+			throw new BadRequestException("The default system administrator cannot be deleted");
 		}
-		return userMapper.toResponse(userRepository.save(user));
+		String email = user.getEmail();
+		if (user.getCustomerId() != null) {
+			customerService.delete(user.getCustomerId());
+		}
+		refreshTokenRepository.deleteByUser(user);
+		user.getRoles().clear();
+		userRepository.delete(user);
+		auditService.log("DELETE", "User", id, performedBy, "User permanently deleted: " + email);
 	}
 
-	@Override
-	@Transactional
-	public void delete(Long id) {
-		User user = getActiveUser(id);
-		user.setDeleted(true);
-		user.setEnabled(false);
-		userRepository.save(user);
-	}
-
-	private User getActiveUser(Long id) {
-		return userRepository.findByIdAndDeletedFalse(id)
+	private User getUser(Long id) {
+		return userRepository.findById(id)
 				.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 	}
 
-	private Set<Role> resolveRoles(Set<String> roleNames) {
-		if (roleNames == null || roleNames.isEmpty()) {
-			return Set.of(roleRepository.findByName(RoleName.ROLE_USER)
-					.orElseThrow(() -> new IllegalStateException("ROLE_USER not found")));
+	private void applyRequestedRole(User user, Set<Role> roles) {
+		if (roles.isEmpty()) {
+			throw new BadRequestException("At least one role is required");
 		}
+		if (roles.size() > 1) {
+			throw new BadRequestException("A user can only have one role at a time");
+		}
+		RoleName primaryRole = roles.iterator().next().getName();
+		user.setRequestedRole(AuthServiceImpl.mapRequestedRole(primaryRole));
+		if (primaryRole != RoleName.ROLE_CUSTOMER) {
+			user.setCustomerId(null);
+		}
+	}
+
+	private Set<Role> resolveRoles(Set<String> roleNames) {
 		Set<Role> roles = new HashSet<>();
 		for (String roleName : roleNames) {
 			RoleName name = RoleName.valueOf(roleName.startsWith("ROLE_") ? roleName : "ROLE_" + roleName);
@@ -106,6 +130,19 @@ public class UserServiceImpl implements UserService {
 					.orElseThrow(() -> new ResourceNotFoundException("Role not found: " + roleName)));
 		}
 		return roles;
+	}
+
+	private void validateRoleFilter(String role) {
+		if (role == null || role.isBlank()) {
+			return;
+		}
+		String roleName = role.startsWith("ROLE_") ? role : "ROLE_" + role;
+		try {
+			RoleName.valueOf(roleName.toUpperCase());
+		} catch (IllegalArgumentException ex) {
+			throw new BadRequestException("Invalid role filter: " + role
+					+ ". Use ADMIN, OPERATOR, FINANCE, or CUSTOMER.");
+		}
 	}
 
 	private PagedResponse<UserResponse> toPagedResponse(Page<User> page) {

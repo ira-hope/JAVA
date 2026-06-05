@@ -1,5 +1,9 @@
 package com.example.project.security;
 
+/**
+ * Reads and validates JWT tokens on incoming HTTP requests.
+ */
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

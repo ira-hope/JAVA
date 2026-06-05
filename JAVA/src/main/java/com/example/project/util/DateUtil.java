@@ -1,5 +1,9 @@
 package com.example.project.util;
 
+/**
+ * Small date and time helper methods used across the app.
+ */
+
 import java.time.LocalDateTime;
 
 public final class DateUtil {

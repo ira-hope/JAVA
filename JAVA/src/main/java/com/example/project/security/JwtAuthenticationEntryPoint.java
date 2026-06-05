@@ -1,5 +1,9 @@
 package com.example.project.security;
 
+/**
+ * Returns a 401 response when JWT authentication fails.
+ */
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.MediaType;

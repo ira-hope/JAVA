@@ -1,5 +1,9 @@
 package com.example.project.validation;
 
+/**
+ * Shared helper methods for input validation.
+ */
+
 import com.example.project.exception.ValidationException;
 import org.springframework.util.StringUtils;
 

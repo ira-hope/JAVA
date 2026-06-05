@@ -1,10 +1,11 @@
+-- WASAC Utility Billing System: optional PostgreSQL views, functions, and procedures.
 -- Database routines support (run manually in PostgreSQL when needed)
 
 -- Example view: active users
 CREATE OR REPLACE VIEW v_active_users AS
 SELECT id, email, first_name, last_name, enabled, email_verified, created_at, updated_at
 FROM users
-WHERE deleted = false;
+WHERE enabled = true;
 
 -- Example function: count active users
 CREATE OR REPLACE FUNCTION fn_count_active_users()
@@ -12,17 +13,23 @@ RETURNS BIGINT
 LANGUAGE sql
 STABLE
 AS $$
-    SELECT COUNT(*) FROM users WHERE deleted = false;
+    SELECT COUNT(*) FROM users WHERE enabled = true;
 $$;
 
--- Example procedure: soft-delete user by email
-CREATE OR REPLACE PROCEDURE sp_soft_delete_user(p_email VARCHAR)
+-- Example procedure: permanently delete user by email
+CREATE OR REPLACE PROCEDURE sp_delete_user(p_email VARCHAR)
 LANGUAGE plpgsql
 AS $$
+DECLARE
+    v_user_id BIGINT;
 BEGIN
-    UPDATE users
-    SET deleted = true, enabled = false, updated_at = NOW()
-    WHERE email = p_email AND deleted = false;
+    SELECT id INTO v_user_id FROM users WHERE LOWER(email) = LOWER(p_email);
+    IF v_user_id IS NULL THEN
+        RAISE EXCEPTION 'User not found: %', p_email;
+    END IF;
+    DELETE FROM refresh_tokens WHERE user_id = v_user_id;
+    DELETE FROM user_roles WHERE user_id = v_user_id;
+    DELETE FROM users WHERE id = v_user_id;
 END;
 $$;
 

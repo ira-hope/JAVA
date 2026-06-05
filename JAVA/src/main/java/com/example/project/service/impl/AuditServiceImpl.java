@@ -1,5 +1,9 @@
 package com.example.project.service.impl;
 
+/**
+ * Implements writing audit log entries to the database.
+ */
+
 import com.example.project.entity.AuditLog;
 import com.example.project.repository.AuditLogRepository;
 import com.example.project.service.AuditService;

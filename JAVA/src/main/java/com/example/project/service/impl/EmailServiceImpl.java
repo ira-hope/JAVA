@@ -1,5 +1,9 @@
 package com.example.project.service.impl;
 
+/**
+ * Implements sending plain text and OTP emails through SMTP.
+ */
+
 import com.example.project.exception.BadRequestException;
 import com.example.project.service.EmailService;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +35,16 @@ public class EmailServiceImpl implements EmailService {
 	@Override
 	public void sendOtpEmail(String to, String otp) {
 		sendPlainEmail(to, "Your verification code", "Your OTP is: " + otp + ". It expires soon.");
+	}
+
+	@Override
+	public void sendAccountActivationEmail(String to, String fullName, String otp) {
+		String body = "Dear " + fullName + ",\n\n"
+				+ "Your WASAC utility account has been created by an administrator.\n"
+				+ "Use the OTP below with POST /api/auth/activate-account to set your password and activate your account.\n\n"
+				+ "OTP: " + otp + "\n\n"
+				+ "This code expires soon. Do not share it with anyone.";
+		sendPlainEmail(to, "Activate your WASAC account", body);
 	}
 
 	@Override

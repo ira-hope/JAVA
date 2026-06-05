@@ -1,5 +1,9 @@
 package com.example.project.security;
 
+/**
+ * Loads user details from the database for Spring Security.
+ */
+
 import com.example.project.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -17,7 +21,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 	@Override
 	@Transactional(readOnly = true)
 	public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-		return userRepository.findByEmailAndDeletedFalse(email)
+		return userRepository.findByEmailIgnoreCase(email)
 				.map(UserPrincipal::new)
 				.orElseThrow(() -> new UsernameNotFoundException("User not found: " + email));
 	}

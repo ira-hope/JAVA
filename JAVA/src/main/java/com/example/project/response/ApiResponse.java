@@ -1,5 +1,9 @@
 package com.example.project.response;
 
+/**
+ * Standard wrapper used for all WASAC API success and error payloads.
+ */
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

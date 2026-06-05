@@ -1,5 +1,9 @@
 package com.example.project.response;
 
+/**
+ * Standard wrapper for paginated list API responses.
+ */
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

@@ -1,5 +1,9 @@
 package com.example.project.entity;
 
+/**
+ * Base JPA entity with shared id and timestamp fields.
+ */
+
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.GeneratedValue;

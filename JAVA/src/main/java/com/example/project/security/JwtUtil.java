@@ -1,5 +1,9 @@
 package com.example.project.security;
 
+/**
+ * Creates, parses, and validates JWT access and refresh tokens.
+ */
+
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
@@ -9,6 +13,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -54,6 +61,12 @@ public class JwtUtil {
 
 	public boolean isRefreshToken(String token) {
 		return "refresh".equals(extractClaim(token, claims -> claims.get("type", String.class)));
+	}
+
+	public LocalDateTime extractExpirationAsLocalDateTime(String token) {
+		return Instant.ofEpochMilli(extractExpiration(token).getTime())
+				.atZone(ZoneId.systemDefault())
+				.toLocalDateTime();
 	}
 
 	private boolean isTokenExpired(String token) {

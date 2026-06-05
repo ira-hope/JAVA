@@ -1,9 +1,14 @@
 package com.example.project.entity;
 
+/**
+ * Database entity for WASAC user roles such as ADMIN and OPERATOR.
+ */
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,7 +17,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "roles")
+@Table(name = "roles", indexes = {
+		@Index(name = "idx_role_name", columnList = "name", unique = true)
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -26,7 +33,8 @@ public class Role extends BaseEntity {
 
 	public enum RoleName {
 		ROLE_ADMIN,
-		ROLE_MANAGER,
-		ROLE_USER
+		ROLE_OPERATOR,
+		ROLE_FINANCE,
+		ROLE_CUSTOMER
 	}
 }

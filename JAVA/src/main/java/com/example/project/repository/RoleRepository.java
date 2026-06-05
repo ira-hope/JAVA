@@ -1,5 +1,9 @@
 package com.example.project.repository;
 
+/**
+ * Database queries for role records.
+ */
+
 import com.example.project.entity.Role;
 import com.example.project.entity.Role.RoleName;
 import org.springframework.data.jpa.repository.JpaRepository;

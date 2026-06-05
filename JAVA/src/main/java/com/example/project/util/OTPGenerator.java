@@ -1,5 +1,9 @@
 package com.example.project.util;
 
+/**
+ * Generates random numeric OTP codes for email verification.
+ */
+
 import java.security.SecureRandom;
 
 public final class OTPGenerator {
