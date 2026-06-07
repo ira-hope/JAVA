@@ -89,7 +89,7 @@ public class PaymentServiceImpl implements PaymentService {
 		billRepository.save(bill);
 
 		if (bill.getStatus() == BillStatus.PAID) {
-			notifyPaymentApproved(bill, request.getAmountPaid(), request.getPaymentMethod(), request.getPaymentDate());
+			notifyPaymentApproved(bill);
 		}
 
 		return toResponse(payment);
@@ -136,33 +136,14 @@ public class PaymentServiceImpl implements PaymentService {
 				.collect(Collectors.toList());
 	}
 
-	private void notifyPaymentApproved(
-			Bill bill,
-			BigDecimal amountPaid,
-			PaymentMethod paymentMethod,
-			java.time.LocalDate paymentDate) {
+	private void notifyPaymentApproved(Bill bill) {
 		Customer customer = bill.getMeter().getCustomer();
 		int month = bill.getBillingCycle().getBillingMonth();
 		int year = bill.getBillingCycle().getBillingYear();
 		String period = Month.of(month).getDisplayName(TextStyle.FULL, Locale.ENGLISH) + "/" + year;
-		String message = "Dear " + customer.getFullName() + ",\n\n"
-				+ "Your payment has been received and approved.\n"
-				+ "Bill reference: " + bill.getBillReference() + "\n"
-				+ "Billing period: " + period + "\n"
-				+ "Amount received: " + amountPaid + " FRW\n"
-				+ "Payment method: " + formatPaymentMethod(paymentMethod) + "\n"
-				+ "Payment date: " + paymentDate + "\n\n"
-				+ "Thank you for settling your WASAC utility bill.";
+		String message = "Dear " + customer.getFullName() + ",\n"
+				+ "Your " + period + " utility bill of " + bill.getTotalAmount() + " FRW has been successfully processed.";
 		notificationService.notifyCustomer(customer, "WASAC Payment Approved", message);
-	}
-
-	private String formatPaymentMethod(PaymentMethod paymentMethod) {
-		return switch (paymentMethod) {
-			case MOBILE_MONEY -> "Mobile Money";
-			case BANK_TRANSFER -> "Bank Transfer";
-			case CARD -> "Card";
-			case CASH -> "Cash";
-		};
 	}
 
 	private PaymentResponse toResponse(Payment payment) {
