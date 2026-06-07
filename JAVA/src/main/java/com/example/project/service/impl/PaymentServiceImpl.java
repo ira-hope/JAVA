@@ -7,7 +7,6 @@ package com.example.project.service.impl;
 import com.example.project.dto.request.PaymentCreateRequest;
 import com.example.project.dto.response.PaymentResponse;
 import com.example.project.entity.Bill;
-import com.example.project.entity.Customer;
 import com.example.project.entity.Payment;
 import com.example.project.entity.enums.BillStatus;
 import com.example.project.entity.enums.PaymentMethod;
@@ -18,7 +17,6 @@ import com.example.project.repository.PaymentRepository;
 import com.example.project.response.PagedResponse;
 import com.example.project.security.UserPrincipal;
 import com.example.project.service.BillService;
-import com.example.project.service.NotificationService;
 import com.example.project.service.PaymentService;
 import com.example.project.util.CustomerAccessUtil;
 import com.example.project.util.FinanceAccessUtil;
@@ -29,11 +27,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.Month;
-import java.time.format.TextStyle;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -50,7 +45,6 @@ public class PaymentServiceImpl implements PaymentService {
 	private final PaymentRepository paymentRepository;
 	private final BillRepository billRepository;
 	private final BillService billService;
-	private final NotificationService notificationService;
 
 	@Override
 	@Transactional
@@ -78,20 +72,6 @@ public class PaymentServiceImpl implements PaymentService {
 				.paymentDate(request.getPaymentDate())
 				.build();
 		payment = paymentRepository.save(payment);
-
-		BigDecimal newOutstanding = bill.getOutstandingAmount().subtract(request.getAmountPaid());
-		bill.setOutstandingAmount(newOutstanding);
-		if (newOutstanding.compareTo(BigDecimal.ZERO) == 0) {
-			bill.setStatus(BillStatus.PAID);
-		} else {
-			bill.setStatus(BillStatus.PARTIALLY_PAID);
-		}
-		billRepository.save(bill);
-
-		if (bill.getStatus() == BillStatus.PAID) {
-			notifyPaymentApproved(bill);
-		}
-
 		return toResponse(payment);
 	}
 
@@ -134,16 +114,6 @@ public class PaymentServiceImpl implements PaymentService {
 		return paymentRepository.findByBillId(billId).stream()
 				.map(this::toResponse)
 				.collect(Collectors.toList());
-	}
-
-	private void notifyPaymentApproved(Bill bill) {
-		Customer customer = bill.getMeter().getCustomer();
-		int month = bill.getBillingCycle().getBillingMonth();
-		int year = bill.getBillingCycle().getBillingYear();
-		String period = Month.of(month).getDisplayName(TextStyle.FULL, Locale.ENGLISH) + "/" + year;
-		String message = "Dear " + customer.getFullName() + ",\n"
-				+ "Your " + period + " utility bill of " + bill.getTotalAmount() + " FRW has been successfully processed.";
-		notificationService.notifyCustomer(customer, "WASAC Payment Approved", message);
 	}
 
 	private PaymentResponse toResponse(Payment payment) {

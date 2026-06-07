@@ -102,7 +102,6 @@ public class BillServiceImpl implements BillService {
 				.build();
 
 		bill = billRepository.save(bill);
-		notifyBillGenerated(bill);
 		return toResponse(bill);
 	}
 
